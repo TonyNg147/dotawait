@@ -1,0 +1,9 @@
+# Normalize line endings to LF in the repo, whatever the checkout platform.
+* text=auto eol=lf
+
+# Golden tests compare transpiler output byte-for-byte, so their fixtures
+# must never be rewritten (e.g. to CRLF on Windows).
+transpiler/tests/golden/** -text
+
+# Keep diffs of the .async.cpp dialect highlighted as C++.
+*.async.cpp linguist-language=C++
