@@ -50,3 +50,8 @@ Thumbs.db
 
 # --- Local notes ------------------------------------------------------------
 scratchpad.md
+
+# --- Claude Code ------------------------------------------------------------
+# Shared agent config (.claude/agents, .claude/skills, .claude/settings.json)
+# is committed; personal overrides are not.
+.claude/settings.local.json

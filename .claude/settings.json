@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(cmake:*)",
+      "Bash(ctest:*)",
+      "Bash(make:*)",
+      "Bash(g++:*)",
+      "Bash(.claude/skills/verify/scripts/verify.sh:*)",
+      "Bash(.claude/skills/golden-test/scripts/golden.sh:*)",
+      "Bash(python3 .claude/skills/ticket/scripts/ticket.py:*)",
+      "Bash(build/transpiler/asynctp:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)"
+    ]
+  }
+}

@@ -121,6 +121,15 @@ make test     # builds asynctp, runtime, every test suite, and both examples, th
 make clean
 ```
 
+## Working on this repo with Claude Code
+
+`CLAUDE.md` holds the project rules. `.claude/agents/` defines three roles:
+`architect` (BA + solution architect), `developer`, and `tester`.
+`.claude/skills/` holds the playbooks and scripts they use (`verify`,
+`ticket`, `golden-test`, `syntax-feature`, `ship`). The backlog is in
+[`docs/tickets/`](docs/tickets/README.md). `/ship T-0001` (or `/ship next`)
+takes one ticket through design, implementation, and independent testing.
+
 ## MVP scope
 
 Only the `async` function-signature marker and `.await` are supported,

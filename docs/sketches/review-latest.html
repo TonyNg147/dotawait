@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>dotawait: suffix-free build and LSP proxy (epic T-0009, 2026-10-17)</title>
+<!--
+  Hand-written, self-contained semantic HTML. The `effective-html` skill named in the
+  architect agent definition is NOT installed in this environment, so this file follows
+  its spirit (wireframe boxes, zones, state flags as custom elements) without it.
+  No scripts, no external assets. Open directly in a browser.
+-->
+<style>
+  :root { --bg:#fafafa; --fg:#1b1b1b; --muted:#5d5d5d; --line:#bdbdbd; --box:#fff; --zone:#f0f0f0;
+          --hi:#b3261e; --med:#9a5b00; --low:#49617a; --ok:#2e6b30; --new:#6a3fa0; --code:#ececec; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161616; --fg:#e6e6e6; --muted:#a3a3a3; --line:#4a4a4a; --box:#202020; --zone:#1c1c1c;
+            --hi:#ff8a80; --med:#ffc069; --low:#9cc3e6; --ok:#8fd18f; --new:#c9a6ff; --code:#2a2a2a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1200px; margin:0 auto; padding:24px 20px 64px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  h2 { font-size:1.15rem; margin:40px 0 10px; padding-bottom:4px; border-bottom:1px solid var(--line); }
+  h3 { font-size:1rem; margin:0 0 6px; }
+  p, li { max-width:85ch; }
+  code, pre { font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; font-size:.86em; }
+  code { background:var(--code); padding:0 3px; border-radius:3px; }
+  pre { background:var(--code); padding:8px 10px; overflow-x:auto; border-radius:4px; margin:6px 0; }
+  .muted { color:var(--muted); }
+  nav ol { columns:2; padding-left:20px; }
+  table { border-collapse:collapse; width:100%; margin:8px 0; font-size:.92em; }
+  th, td { border:1px solid var(--line); padding:4px 8px; text-align:left; vertical-align:top; }
+  th { background:var(--zone); }
+
+  x-wireframe-box, x-zone, x-step, x-flag, x-arrow { display:block; }
+  x-zone { border:1px dashed var(--line); background:var(--zone); padding:12px; border-radius:6px; }
+  x-zone > h3 { text-transform:uppercase; letter-spacing:.04em; font-size:.78rem; color:var(--muted); }
+  x-wireframe-box { border:1px solid var(--line); background:var(--box); border-radius:4px; padding:8px 10px; margin:6px 0; }
+  x-wireframe-box[data-new] { border-color:var(--new); border-style:dashed; }
+  x-wireframe-box .path { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.8rem; color:var(--muted); }
+  x-flag { display:inline-block; font:600 .72rem/1.6 ui-monospace,Menlo,Consolas,monospace;
+           border:1px solid currentColor; border-radius:3px; padding:0 5px; margin:2px 2px 0 0; }
+  x-flag[data-sev="high"] { color:var(--hi); } x-flag[data-sev="med"] { color:var(--med); }
+  x-flag[data-sev="low"] { color:var(--low); } x-flag[data-sev="ok"] { color:var(--ok); }
+  x-flag[data-sev="new"] { color:var(--new); border-style:dashed; }
+  x-arrow { text-align:center; color:var(--muted); font-size:1.2rem; margin:2px 0; }
+  x-arrow[data-dir="right"] { display:flex; align-items:center; justify-content:center; }
+
+  .two { display:grid; gap:14px; grid-template-columns:1fr 1fr; }
+  .three { display:grid; gap:14px; grid-template-columns:repeat(3,1fr); }
+  .flow { display:grid; gap:6px; grid-template-columns:repeat(5,1fr); align-items:stretch; }
+  .lanes { display:grid; grid-template-columns:1fr 1.4fr 1fr; gap:0; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .lanes > div { padding:8px 10px; border-right:1px solid var(--line); }
+  .lanes > div:last-child { border-right:0; }
+  .lanes .head { background:var(--zone); font-weight:600; border-bottom:1px solid var(--line); }
+  .lanes .row { border-top:1px dotted var(--line); font-size:.9em; }
+  .waves { display:grid; gap:10px; grid-template-columns:repeat(6,1fr); }
+  .waves x-zone { padding:8px; }
+  .waves x-wireframe-box { font-size:.82em; padding:6px; }
+  .tid { font-weight:700; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .dep { display:block; color:var(--muted); font-size:.85em; }
+  .map { display:grid; gap:14px; grid-template-columns:1.5fr 1fr; grid-template-areas:"tp rt" "glue glue"; }
+  .tp { grid-area:tp; } .rt { grid-area:rt; } .glue { grid-area:glue; }
+  @media (max-width:900px) { .two,.three,.flow,.waves,.map { grid-template-columns:1fr; grid-template-areas:none; } .lanes { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>dotawait: suffix-free build via compiler launcher, and the LSP proxy</h1>
+  <p class="muted">Epic <code>T-0009</code> &middot; architect sketch &middot; 2026-10-17 &middot; evidence from GCC 15.2, CMake 4.3.4 (Unix Makefiles). No ninja and no clangd on this machine.
+  Legend:
+  <x-flag data-sev="ok">verified by experiment</x-flag>
+  <x-flag data-sev="med">design, unverified</x-flag>
+  <x-flag data-sev="high">risk / failure mode</x-flag>
+  <x-flag data-sev="new">new component</x-flag></p>
+</header>
+
+<nav aria-label="Sections"><ol>
+  <li><a href="#contract">Contract and invariants</a></li>
+  <li><a href="#before-after">Build flow: before and after</a></li>
+  <li><a href="#launcher">The asynctp-cc launcher path</a></li>
+  <li><a href="#shadow">Header shadow scheme</a></li>
+  <li><a href="#lsp">LSP proxy message flow and position mapping</a></li>
+  <li><a href="#ownership">Component and ownership map</a></li>
+  <li><a href="#graph">Ticket dependency graph</a></li>
+  <li><a href="#experiments">Experiment log</a></li>
+  <li><a href="#decisions">Decisions for the human</a></li>
+</ol></nav>
+
+<section id="contract">
+<h2>1. The new contract, against the invariants</h2>
+<p>"Any function declared <code>async</code> is lowered to a coroutine. Transformation happens on build artifacts, never on the user's files. No <code>.async.cpp</code> naming (AUTOMOC-like). LSP and completion are mandatory." The user chose an LSP proxy with unchanged syntax.</p>
+<table>
+  <thead><tr><th>Invariant</th><th>Pressure</th><th>Resolution</th><th>State</th></tr></thead>
+  <tbody>
+  <tr><td>transpiler/ and runtime/ independent</td><td>launcher injects the runtime include; tests need the runtime path</td><td>text-only include, path from user flags (CMake links <code>asyncrt</code>); tests get the path as an argument</td><td><x-flag data-sev="ok">kept</x-flag></td></tr>
+  <tr><td>zero-dependency</td><td>proxy must spawn clangd with two pipes</td><td>launcher: <code>std::system</code> (ISO). Proxy: POSIX in an isolated <code>platform/</code> module</td><td><x-flag data-sev="ok">D1 = (b), decided</x-flag></td></tr>
+  <tr><td>text-island passthrough</td><td>mirrored headers get a <code>#line</code> prefix</td><td>only in build artifacts; the source tree is never written (tested)</td><td><x-flag data-sev="ok">kept</x-flag></td></tr>
+  <tr><td>fail loudly</td><td>LSP needs best-effort lowering</td><td><code>Mode::Strict</code> for build/CLI, <code>Mode::Tolerant</code> for the proxy only (T-0020)</td><td><x-flag data-sev="ok">kept</x-flag></td></tr>
+  <tr><td>lazy Task</td><td>H1: a no-await body is not a coroutine and runs eagerly (UB)</td><td>T-0013 inserts <code>co_return;</code> or raises an error</td><td><x-flag data-sev="ok">restored</x-flag></td></tr>
+  <tr><td>Makefile = CMake</td><td>two new binaries, about 9 new suites</td><td>every child lists both build edits</td><td><x-flag data-sev="ok">kept</x-flag></td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="before-after">
+<h2>2. Build flow: before and after</h2>
+<div class="two">
+  <x-zone aria-label="Before">
+    <h3>Before (today): suffix-driven custom commands</h3>
+    <x-wireframe-box><span class="path">src/main.async.cpp</span><br>only this suffix is transpiled; headers cannot contain <code>async</code></x-wireframe-box>
+    <x-arrow>&darr; add_custom_command (asynctp)</x-arrow>
+    <x-wireframe-box><span class="path">build/&hellip;/asynctp_generated/app/main.cpp</span></x-wireframe-box>
+    <x-arrow>&darr; c++ -c</x-arrow>
+    <x-wireframe-box>object file</x-wireframe-box>
+    <x-flag data-sev="high">compile_commands.json lists the generated file</x-flag>
+    <x-flag data-sev="high">clangd has no entry for the user's file</x-flag>
+    <x-flag data-sev="high">hand-written Task&lt;T&gt; in headers</x-flag>
+  </x-zone>
+  <x-zone aria-label="After">
+    <h3>After: compiler launcher (AUTOMOC-like)</h3>
+    <x-wireframe-box><span class="path">src/main.cpp &middot; src/jobs/jobs.hpp &middot; src/jobs/jobs.cpp</span><br>plain names; <code>async</code> anywhere, headers included</x-wireframe-box>
+    <x-arrow>&darr; CMake: <code>CXX_COMPILER_LAUNCHER = asynctp-cc --root &hellip; --shadow &hellip; --</code></x-arrow>
+    <x-wireframe-box data-new><b>asynctp-cc</b> <x-flag data-sev="new">T-0014</x-flag><br>scan deps, mirror and lower into the shadow tree, rewrite <code>-I</code>, run the real compiler, rewrite the depfile</x-wireframe-box>
+    <x-arrow>&darr; c++ -c &lt;shadow copy&gt;</x-arrow>
+    <x-wireframe-box>object file; diagnostics point at the original file (single <code>#line</code>, line-preserving lowering, T-0012)</x-wireframe-box>
+    <x-flag data-sev="ok">compile_commands.json = original file + plain flags</x-flag>
+    <x-flag data-sev="ok">sources never written</x-flag>
+    <x-flag data-sev="ok">header edits trigger rebuilds</x-flag>
+  </x-zone>
+</div>
+<p class="muted">Rejected alternative: custom commands without the suffix. The compile DB would still list generated files, a configure-time scan goes stale, and headers stay invisible (T-0014 Notes).</p>
+</section>
+
+<section id="launcher">
+<h2>3. The asynctp-cc launcher path (one compile)</h2>
+<div class="flow">
+  <x-step><x-wireframe-box><h3>1. classify</h3>sources by extension; value-taking options table; link, <code>-E</code> and non-C++ invocations pass through. Unsupported modes (PCH, modules, MSVC) are noted.</x-wireframe-box></x-step>
+  <x-step><x-wireframe-box><h3>2. scan</h3>user's flags minus <code>-c -o -MD -MF -MT</code>, plus <code>-MM -MF tmp</code>, giving the non-system deps. <x-flag data-sev="ok">~56 ms vs ~430 ms compile</x-flag></x-wireframe-box></x-step>
+  <x-step><x-wireframe-box><h3>3. decide</h3>classified markers (T-0004) in the TU or in deps under <code>--root</code>?<br>none: <b>exec unchanged</b>; nothing written.</x-wireframe-box></x-step>
+  <x-step><x-wireframe-box><h3>4. mirror</h3>marker files: strict <code>lower_file</code>; others: BOM, then <code>#line 1 "orig"</code>, then bytes. Atomic write-if-changed.</x-wireframe-box></x-step>
+  <x-step><x-wireframe-box><h3>5. compile and fix up</h3>source &rarr; shadow path; shadow twin before every <code>-I</code>/<code>-iquote</code>; trailing <code>-iquote &lt;tu dir&gt;</code>; run; depfile shadow&rarr;original; bypass post-check.</x-wireframe-box></x-step>
+</div>
+<pre>CMake invokes (verified):  asynctp-cc --root /proj --shadow /proj/build/asynctp-shadow -- /usr/bin/c++ -I/proj/src -std=gnu++20 -MD -MT obj -MF obj.d -o obj -c /proj/src/main.cpp
+asynctp-cc runs:           /usr/bin/c++ -I /proj/build/asynctp-shadow/proj/src -I/proj/src -std=gnu++20 -MD -MT obj -MF obj.d -o obj \
+                             -c /proj/build/asynctp-shadow/proj/src/main.cpp -iquote /proj/src
+depfile after rewrite:     obj: /proj/src/main.cpp /proj/src/jobs/jobs.hpp /proj/src/jobs/detail.hpp &hellip;</pre>
+<p><x-flag data-sev="ok">prototype built, ran, rebuilt on original-header edit, no-op rebuild compiled nothing</x-flag>
+<x-flag data-sev="high">plain <code>std::async</code> TU broke the prototype build until T-0004</x-flag>
+<x-flag data-sev="high">empty prior-launcher list element: Error 126 (T-0015 pitfall)</x-flag></p>
+</section>
+
+<section id="shadow">
+<h2>4. Header shadow scheme</h2>
+<div class="two">
+  <x-zone aria-label="Source tree">
+    <h3>Source tree (read-only to us)</h3>
+<pre>/proj/src/main.cpp          #include "jobs/jobs.hpp"
+/proj/src/jobs/jobs.hpp     #include "detail.hpp"
+                            async int download(int n);
+/proj/src/jobs/detail.hpp   constexpr int K = 100;</pre>
+  </x-zone>
+  <x-zone aria-label="Shadow tree">
+    <h3>Shadow tree: <code>&lt;build&gt;/asynctp-shadow/&lt;absolute path&gt;</code></h3>
+<pre>&hellip;/proj/src/main.cpp        lowered    (prelude, #line 1 "/proj/src/main.cpp", &hellip;)
+&hellip;/proj/src/jobs/jobs.hpp   lowered    ::asyncrt::Task&lt;int&gt; download(int n);
+&hellip;/proj/src/jobs/detail.hpp mirrored   #line 1 "/proj/src/jobs/detail.hpp" + bytes</pre>
+  </x-zone>
+</div>
+<table>
+  <thead><tr><th>Rule</th><th>Why (evidence)</th></tr></thead>
+  <tbody>
+  <tr><td>Mirror <b>every</b> non-system header the TU reaches, not just async ones</td><td><x-flag data-sev="ok">verified</x-flag> GCC resolves <code>"x.hpp"</code> against the <i>physical</i> file's dir. Shadowing only <code>jobs.hpp</code> gave <code>fatal error: detail.hpp: No such file or directory</code>.</td></tr>
+  <tr><td>Shadow twin inserted before each project <code>-I</code>/<code>-iquote</code></td><td><x-flag data-sev="ok">verified</x-flag> <code>#include &lt;jobs/jobs.hpp&gt;</code> finds the lowered copy first.</td></tr>
+  <tr><td>Lower only under <code>--root</code>; mirror outside roots verbatim</td><td>third-party headers that use <code>async</code> as an identifier are never rewritten</td></tr>
+  <tr><td>Depfile shadow paths rewritten to originals</td><td><x-flag data-sev="ok">verified</x-flag> otherwise editing the original header never triggers a rebuild</td></tr>
+  <tr><td>BOM stays the first bytes</td><td><x-flag data-sev="ok">verified</x-flag> a BOM after <code>#line</code> gives <code>'&#xFEFF;int' does not name a type</code></td></tr>
+  <tr><td>Trailing <code>-iquote &lt;tu dir&gt;</code></td><td>keeps <code>__has_include("x.h")</code> right for headers tested but not included</td></tr>
+  </tbody>
+</table>
+<p>Failure modes (all loud):
+<x-flag data-sev="high">absolute <code>#include "/proj/src/jobs/jobs.hpp"</code>: bypass post-check error</x-flag>
+<x-flag data-sev="high">unity builds (absolute includes): same post-check</x-flag>
+<x-flag data-sev="high"><code>#include_next</code> in a mirrored header may reach the original</x-flag>
+<x-flag data-sev="high">PCH / modules / MSVC: explicit "unsupported" error when markers are present</x-flag>
+<x-flag data-sev="med">Ninja: compile_commands behaviour not verified here</x-flag></p>
+</section>
+
+<section id="lsp">
+<h2>5. LSP proxy message flow and position mapping</h2>
+<p><x-flag data-sev="med">design; clangd behaviour to be verified by spike T-0018</x-flag> Editor config points <code>clangd.path</code> (VS Code) or <code>cmd</code> (Neovim) at <code>asynctp-lsp</code>, which finds the real clangd via <code>--clangd</code>, then <code>ASYNCTP_CLANGD</code>, then <code>PATH</code> (skipping itself), then <code>clangd-NN</code>.</p>
+<div class="lanes" role="table" aria-label="LSP sequence">
+  <div class="head" role="columnheader">Editor (original text)</div>
+  <div class="head" role="columnheader">asynctp-lsp <x-flag data-sev="new">T-0021..24</x-flag></div>
+  <div class="head" role="columnheader">clangd (lowered text)</div>
+
+  <div class="row">initialize</div><div class="row">forward; filter capabilities that cannot be mapped (formatting? semantic tokens? per spike Q3/Q4)</div><div class="row">initialize result</div>
+
+  <div class="row">didOpen <code>main.cpp</code> (v1, original)</div>
+  <div class="row"><code>lower_file(Tolerant)</code> gives text, SourceMap and asynctp diagnostics. Keep <code>(uri, v1) &rarr; map</code></div>
+  <div class="row">didOpen <code>main.cpp</code> (v1, <b>lowered</b>)</div>
+
+  <div class="row">didChange (incremental)</div>
+  <div class="row">apply the edit to the original; re-lower; new map v2</div>
+  <div class="row">didChange (full lowered text, v2)</div>
+
+  <div class="row">publishDiagnostics: original col <b>37</b>, plus <code>source: asynctp</code> errors</div>
+  <div class="row">map ranges <code>to_original</code>; merge tolerant-mode ParseErrors</div>
+  <div class="row">publishDiagnostics at lowered col <b>53</b></div>
+
+  <div class="row">completion at <code>x.await.|</code></div>
+  <div class="row">orig&rarr;gen position; lowered text is <code>(co_await (x)).|</code></div>
+  <div class="row">members of the awaited <code>T</code></div>
+
+  <div class="row">definition: jumps into <code>jobs.hpp</code> at the original line/col</div>
+  <div class="row">map Location via that header's map (T-0024: open-doc overlay, <code>-ivfsoverlay</code>, or shadow URI)</div>
+  <div class="row">Location in the lowered header</div>
+
+  <div class="row">rename: error shown</div>
+  <div class="row">edit overlaps a generated segment: JSON-RPC error (never a partial edit)</div>
+  <div class="row">WorkspaceEdit</div>
+</div>
+<h3 style="margin-top:14px">Source map segments for <code>async int g() { int z = f().await + nope; return z; }</code></h3>
+<pre>orig: |async |int|&gt; g() { int z = |      |f()|.await| + nope; |return| z; }
+gen : |::asyncrt::Task&lt;|int|&gt; g() { int z = |co_await (|f()|)| + nope; |co_return| z; }
+       R(6&rarr;16)        V    R(0&rarr;1) V              R(0&rarr;10) V  R(6&rarr;1) V       R(6&rarr;9)  V
+V = verbatim (exact offset arithmetic); R = replacement (maps to its anchor). Lines always preserved (T-0012).</pre>
+</section>
+
+<section id="ownership">
+<h2>6. Component and ownership map (independence preserved)</h2>
+<div class="map">
+  <x-zone class="tp" aria-label="transpiler">
+    <h3>transpiler/ (std lib only; plus POSIX process in platform/ if D1)</h3>
+    <div class="three">
+      <x-wireframe-box><b>asynctp_core</b> (static lib, now unconditional)<br><span class="path">tokenizer &middot; lexer (markers) &middot; async_parser &middot; lowering &middot; source_map &middot; emitter &middot; lower_file(Strict|Tolerant)</span></x-wireframe-box>
+      <x-wireframe-box data-new><b>asynctp-cc</b><br><span class="path">launcher.cpp, launcher_main.cpp</span><br>links core in-process; <code>std::system</code></x-wireframe-box>
+      <x-wireframe-box data-new><b>asynctp-lsp</b><br><span class="path">lsp/json, lsp/framing, lsp/proxy, platform/process</span><br>links core; spawns clangd</x-wireframe-box>
+    </div>
+    <x-wireframe-box><b>asynctp</b> CLI (unchanged role: debugging, golden tests; gains <code>-o -</code>, <code>--emit-map</code>, <code>--tolerant</code>)</x-wireframe-box>
+  </x-zone>
+  <x-zone class="rt" aria-label="runtime">
+    <h3>runtime/ (header-only, INTERFACE)</h3>
+    <x-wireframe-box><b>asyncrt</b><br><span class="path">task.hpp &middot; executor.hpp &middot; yield.hpp &middot; asyncrt.hpp</span><br>unchanged by this epic (one comment edit in T-0017)</x-wireframe-box>
+    <p class="muted">Knows nothing about asynctp. The injected <code>#include &lt;asyncrt/asyncrt.hpp&gt;</code> is just text.</p>
+  </x-zone>
+  <x-zone class="glue" aria-label="glue">
+    <h3>The only join points</h3>
+    <div class="three">
+      <x-wireframe-box><b>cmake/AsyncTranspile.cmake</b><br><code>target_enable_async</code>: launcher = <code>$&lt;TARGET_FILE:asynctp-cc&gt;</code>, links <code>asyncrt</code>, <code>ASYNCTP_AUTO</code> via DEFER, consumer check</x-wireframe-box>
+      <x-wireframe-box><b>examples/</b> and <b>examples/consumer</b><br>plain <code>.cpp/.hpp</code> after T-0017</x-wireframe-box>
+      <x-wireframe-box><b>compile_commands.json</b> (data, not code)<br>gives clangd, through the proxy, the asyncrt include path</x-wireframe-box>
+    </div>
+  </x-zone>
+</div>
+</section>
+
+<section id="graph">
+<h2>7. Ticket dependency graph (waves; each box says what it waits for)</h2>
+<div class="waves">
+  <x-zone><h3>Wave 0</h3>
+    <x-wireframe-box><span class="tid">T-0001</span> braceless return <x-flag data-sev="ok">ready</x-flag><span class="dep">Jira SCRUM-8; ship first</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0010</span> tokenizer <x-flag data-sev="ok">ready</x-flag></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0019</span> JSON + framing <x-flag data-sev="ok">ready</x-flag></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0018</span> clangd spike <x-flag data-sev="ok">ready</x-flag><span class="dep">needs D4 (install clangd)</span></x-wireframe-box>
+  </x-zone>
+  <x-zone><h3>Wave 1</h3>
+    <x-wireframe-box><span class="tid">T-0004</span> marker classes <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0010</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0011</span> lower_body on tokens <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0010</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0021</span> transparent proxy <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0019 (D1 resolved)</span></x-wireframe-box>
+  </x-zone>
+  <x-zone><h3>Wave 2</h3>
+    <x-wireframe-box><span class="tid">T-0003</span> .await grammar <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0011</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0005</span> lambda keywords <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0011</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0012</span> source map <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0011</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0013</span> always a coroutine <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0011</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0006</span> declarations / qualified <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0010, T-0004</span></x-wireframe-box>
+  </x-zone>
+  <x-zone><h3>Wave 3</h3>
+    <x-wireframe-box><span class="tid">T-0002</span> noexcept / -&gt; T <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0006</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0014</span> asynctp-cc <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0010, T-0004, T-0012, T-0006</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0020</span> tolerant mode <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0012 (T-0003, T-0006 recommended)</span></x-wireframe-box>
+  </x-zone>
+  <x-zone><h3>Wave 4</h3>
+    <x-wireframe-box><span class="tid">T-0015</span> CMake + Makefile via launcher <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0014</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0016</span> column remap (P3) <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0012, T-0014</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0022</span> lowered buffers + diagnostics <x-flag data-sev="med">proposed</x-flag><span class="dep">&larr; T-0021, T-0020, T-0012, T-0018</span></x-wireframe-box>
+  </x-zone>
+  <x-zone><h3>Wave 5</h3>
+    <x-wireframe-box><span class="tid">T-0017</span> drop .async.cpp naming + docs <x-flag data-sev="ok">ready</x-flag><span class="dep">&larr; T-0006, T-0015</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0023</span> request mapping <x-flag data-sev="med">proposed</x-flag><span class="dep">&larr; T-0022, T-0018</span></x-wireframe-box>
+    <x-wireframe-box><span class="tid">T-0024</span> headers in LSP <x-flag data-sev="med">proposed</x-flag><span class="dep">&larr; T-0018, T-0022, T-0006</span></x-wireframe-box>
+  </x-zone>
+</div>
+<p class="muted">Outside the epic: T-0007 join (runtime-only, proposed); T-0008 async lambdas (proposed, must extend T-0004's rule). Epic tracker: T-0009 (stays proposed until its children close).
+<x-flag data-sev="ok">hard dependencies in front matter <code>depends_on: [...]</code> (D8)</x-flag></p>
+</section>
+
+<section id="experiments">
+<h2>8. Experiment log (scratch dir, not committed)</h2>
+<table>
+  <thead><tr><th>#</th><th>Question</th><th>Result</th></tr></thead>
+  <tbody>
+  <tr><td>1</td><td>Is <code>CXX_COMPILER_LAUNCHER</code> in compile_commands.json?</td><td><x-flag data-sev="ok">no</x-flag> entry is <code>/usr/bin/c++ … -c &lt;original&gt;</code> (Unix Makefiles). <code>$&lt;TARGET_FILE:…&gt;</code> genex works in the property.</td></tr>
+  <tr><td>2</td><td>Quoted include under <code>#line</code>?</td><td>resolved against the physical dir; diagnostics use the <code>#line</code> name</td></tr>
+  <tr><td>3</td><td>Shadow only async headers?</td><td><x-flag data-sev="high">fails</x-flag> sibling include not found; mirror-all works for quoted and angle includes</td></tr>
+  <tr><td>4</td><td>End-to-end launcher prototype</td><td>builds, runs, depfile rewritten, rebuild on header edit, no-op build clean; <code>std::async</code> TU broke it before classification</td></tr>
+  <tr><td>5</td><td>Today's compile DB</td><td>lists <code>asynctp_generated/hello_example/hello.cpp</code></td></tr>
+  <tr><td>6</td><td>DEFER auto-enable</td><td>works; chains in front of <code>env</code>; empty element gives Error 126</td></tr>
+  <tr><td>7</td><td>Hazards on plain files</td><td><code>1'000</code>, <code>#if 0 … isn't</code>, <code>#define … don't</code> each silently disable later lowering (rc=0)</td></tr>
+  <tr><td>8</td><td>Positions</td><td>H2 3:12 vs 6:12; M3 line 3 vs 6; columns 53 vs 37; BOM breaks; <code>\i</code> escape warning</td></tr>
+  <tr><td>9</td><td>H1</td><td><code>-Wreturn-type</code> warning only; SIGILL at run</td></tr>
+  <tr><td>10</td><td>Tooling</td><td>no clangd (apt candidate 21.1.6), no clang, no ninja; nvim present</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="decisions">
+<h2>9. Decisions (made 2026-10-17; D2-D7 accepted as recommended)</h2>
+<ol>
+  <li><b>D1</b> <x-flag data-sev="ok">decided (b)</x-flag> POSIX allowed behind <code>transpiler/src/platform/</code>; no third-party code; CLAUDE.md wording ships with T-0017.</li>
+  <li><b>D2</b> <code>async_transpile_sources</code>: deprecate in T-0015, remove in T-0017 (recommended).</li>
+  <li><b>D3</b> <code>ASYNCTP_AUTO</code> global switch plus per-target <code>target_enable_async</code> (recommended both).</li>
+  <li><b>D4</b> install clangd for the spike; real-clangd tests skip (exit 77) when absent (recommended).</li>
+  <li><b>D5</b> mirror-all shadow scheme (recommended, verified).</li>
+  <li><b>D6</b> launcher rather than suffix-free custom commands (recommended, verified).</li>
+  <li><b>D7</b> SCRUM-8 / T-0001: keep it, ship first, link to the epic in Jira; no scope change.</li>
+  <li><b>D8</b> <x-flag data-sev="ok">decided (b)</x-flag> main session updates ticket.py/ship to honour front-matter <code>depends_on: [...]</code>.</li>
+</ol>
+</section>
+</main>
+</body>
+</html>
