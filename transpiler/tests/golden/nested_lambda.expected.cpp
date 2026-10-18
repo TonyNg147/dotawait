@@ -1,4 +1,6 @@
 #include <asyncrt/asyncrt.hpp>
+::asyncrt::Task<int> fetch(int v) { co_return v * 10; }
+
 ::asyncrt::Task<int> run_all(int x) {
     auto add_one = [](int a) {
         return a + 1;

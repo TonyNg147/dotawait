@@ -1,3 +1,5 @@
+async int fetch(int v) { return v * 10; }
+
 async int run_all(int x) {
     auto add_one = [](int a) {
         return a + 1;

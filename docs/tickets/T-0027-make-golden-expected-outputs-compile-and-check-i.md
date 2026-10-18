@@ -1,7 +1,7 @@
 ---
 id: T-0027
 title: Make golden expected outputs compile and check it in verify
-status: ready
+status: done
 area: cross-cutting
 type: bug
 priority: P2
@@ -197,3 +197,5 @@ type 'int'` error above shows. It costs ~0.17 s per fixture.
 ## Log
 
 - 2026-10-18 architect: created under T-0025. Reproduced both existing expected outputs failing `-fsyntax-only`. Generated and compiled the replacement fixtures. Ready.
+- 2026-10-18 developer: added `cmake/check_golden_compile.cmake`, the `golden_compile` ctest (examples/CMakeLists.txt), the Makefile `golden-compile` loop, and the README sentence. With the old fixtures, `ctest -R golden_compile` failed naming `nested_lambda.expected.cpp` (`'fetch' was not declared`) and `simple_fn.expected.cpp` (`awaitable type 'int'`), and `make BUILD=build-make test` failed at `golden-compile …nested_lambda.expected.cpp`. `-DGOLDEN_DIR=/nonexistent` exits 1 with "no golden fixtures found". Then regenerated both fixtures per Blueprint step 1 (byte-identical to the Blueprint text; both also compile clean with `-Wall -Wextra`). `verify.sh full` OK, `verify.sh asan` OK (golden_compile listed in both).
+- 2026-10-18 tester: PASS, 7/7. Independently reproduced: the script on HEAD's old fixtures fails naming both (`'fetch' was not declared`, `awaitable type 'int'`); `/nonexistent` exits 1 with "no golden fixtures found"; an unregistered non-compiling `*.expected.cpp` fails both `ctest -R golden_compile` (re-globbed at run time, no reconfigure) and `make BUILD=build-make test` with the fixture named; a missing compiler, a bad include dir, and missing `-D` args all fail loudly. The fixtures are byte-identical to the Blueprint and to fresh `asynctp` output, and clean under `-Wall -Wextra -Werror`. Added the `golden_compile_empty_dir` ctest (examples/CMakeLists.txt) so the empty-dir criterion has a regression test. `verify.sh all` OK.
