@@ -25,7 +25,8 @@ is transpiled into:
 
 - `transpiler/` — the `asynctp` CLI: a hand-rolled, zero-dependency lexer +
   parser + lowering pass + emitter that turns `.async.cpp` files into plain
-  `.cpp`. No dependency on `runtime/`.
+  `.cpp`. No dependency on `runtime/`. Also builds `asynctp-lsp`, the
+  editor-facing clangd proxy (see "Editor / LSP").
 - `runtime/` — `asyncrt`: a header-only, zero-dependency `Task<T>` +
   single-threaded cooperative `Executor` the generated code plugs into. No
   dependency on `transpiler/` — usable directly by hand-written C++20 too.
@@ -107,6 +108,48 @@ working relative to the original source, and emit `#line` directives so
 compiler errors point at your `.async.cpp`. Header-only use of the runtime
 without the transpiler is just `target_link_libraries(x PRIVATE asyncrt::asyncrt)`.
 
+### Editor / LSP
+
+`asynctp-lsp` (built as `build/transpiler/asynctp-lsp`) goes wherever your
+editor expects clangd. It starts the real clangd and relays every LSP
+message both ways, so you set up your editor once and later releases can
+teach it about `async` without another config change.
+
+**This stage is a pure pass-through:** clangd sees your files exactly as
+written, so `.async.cpp` files still show errors on `async`/`.await` until
+T-0022 lands. Ordinary C++ behaves exactly as with plain clangd.
+
+It finds clangd via `--clangd=<path>`, then `$ASYNCTP_CLANGD`, then the first
+`clangd` in `PATH` that isn't `asynctp-lsp` itself (so a `clangd ->
+asynctp-lsp` symlink is fine), then the highest-numbered `clangd-NN` in
+`PATH`. A bare name such as `ASYNCTP_CLANGD=clangd` is looked up in `PATH`
+first, and it is an error if that finds `asynctp-lsp` itself. Other
+arguments, and everything after `--`, go to clangd unchanged; clangd's own
+`--log=<level>` has to go after `--`, because before it `--log=<file>` is asynctp-lsp's per-message log. `asynctp-lsp --version`
+prints clangd's version output first (extensions parse it), then its own.
+If clangd is missing, can't start, or crashes, the editor shows an error
+message rather than going quiet. POSIX only (Linux, macOS).
+
+- VS Code (vscode-clangd), `settings.json`:
+  ```json
+  "clangd.path": "/path/to/build/transpiler/asynctp-lsp",
+  "clangd.arguments": ["--clangd=/usr/bin/clangd", "--compile-commands-dir=build"]
+  ```
+- Neovim 0.11:
+  ```lua
+  vim.lsp.config('clangd', { cmd = { '/path/to/asynctp-lsp', '--clangd=/usr/bin/clangd' } })
+  ```
+  or with nvim-lspconfig: `require('lspconfig').clangd.setup{ cmd = { '/path/to/asynctp-lsp', '--clangd=/usr/bin/clangd' } }`.
+- Helix, `languages.toml`:
+  ```toml
+  [language-server.clangd]
+  command = "asynctp-lsp"
+  ```
+- Emacs eglot:
+  ```elisp
+  (add-to-list 'eglot-server-programs '((c++-mode c-mode) "asynctp-lsp"))
+  ```
+
 ## Building this repo
 
 ```sh
@@ -165,3 +208,6 @@ a rearchitecture).
 - GCC only realizes the C++20 standard's O(1)-stack guarantee for symmetric
   transfer starting at `-O1`; at `-O0` very deep `.await` chains can still
   overflow the stack (see `runtime/tests/task_tests.cpp`).
+- `asynctp-lsp` forwards messages unchanged: clangd does not see lowered
+  code yet, so `async`/`.await` are reported as errors in the editor. It is
+  POSIX-only (a compile-time `#error` elsewhere).

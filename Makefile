@@ -3,7 +3,7 @@
 # examples/, wired together the same way cmake/AsyncTranspile.cmake does).
 #
 # Targets:
-#   make            build asynctp, all test binaries, and the examples
+#   make            build asynctp, asynctp-lsp, all test binaries, and the examples
 #   make test       build everything and run every test suite + example
 #   make clean      remove build/
 
@@ -15,10 +15,18 @@ TRANSPILER_SRCS := transpiler/src/scanner.cpp transpiler/src/tokenizer.cpp trans
                     transpiler/src/async_parser.cpp transpiler/src/lowering.cpp \
                     transpiler/src/emitter.cpp \
                     transpiler/src/lsp/json.cpp transpiler/src/lsp/framing.cpp
+# asynctp-lsp's proxy core (part of asynctp_core in CMake). It needs the
+# thread library (allowed under T-0009 D1), so binaries using it get -pthread.
+LSP_SRCS := transpiler/src/lsp/proxy.cpp transpiler/src/platform/process_posix.cpp
 TRANSPILER_INC := -Itranspiler/include
+# Single source of truth for the version: the project() line in CMakeLists.txt.
+# (The `.` after `project` stands for its paren, which would unbalance make's
+# own paren matching.)
+VERSION := $(shell sed -n 's/^project.async_project VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
 RUNTIME_INC := -Iruntime/include
 
 ASYNCTP := $(BUILD)/asynctp
+ASYNCTP_LSP := $(BUILD)/asynctp-lsp
 
 # Adding an example is just: drop examples/<name>.async.cpp and list <name> here.
 EXAMPLES := hello yielding
@@ -26,9 +34,10 @@ EXAMPLE_BINS := $(EXAMPLES:%=$(BUILD)/%_example)
 
 .PHONY: all test clean
 
-all: $(ASYNCTP) \
+all: $(ASYNCTP) $(ASYNCTP_LSP) \
      $(BUILD)/tokenizer_tests $(BUILD)/lexer_tests $(BUILD)/parser_tests $(BUILD)/lowering_tests $(BUILD)/golden_tests \
      $(BUILD)/json_tests $(BUILD)/framing_tests \
+     $(BUILD)/fake_lsp_server $(BUILD)/lsp_proxy_tests $(BUILD)/lsp_clangd_smoke \
      $(BUILD)/task_tests $(BUILD)/executor_tests \
      $(EXAMPLE_BINS)
 
@@ -37,6 +46,9 @@ $(BUILD):
 
 $(ASYNCTP): transpiler/src/main.cpp $(TRANSPILER_SRCS) | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
+
+$(ASYNCTP_LSP): transpiler/src/lsp/lsp_main.cpp $(TRANSPILER_SRCS) $(LSP_SRCS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -pthread $(TRANSPILER_INC) '-DASYNCTP_VERSION="$(VERSION)"' -o $@ $^
 
 $(BUILD)/tokenizer_tests: transpiler/tests/tokenizer_tests.cpp $(TRANSPILER_SRCS) | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
@@ -55,6 +67,15 @@ $(BUILD)/json_tests: transpiler/tests/json_tests.cpp $(TRANSPILER_SRCS) | $(BUIL
 
 $(BUILD)/framing_tests: transpiler/tests/framing_tests.cpp $(TRANSPILER_SRCS) | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
+
+$(BUILD)/fake_lsp_server: transpiler/tests/fake_lsp_server.cpp $(TRANSPILER_SRCS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
+
+$(BUILD)/lsp_proxy_tests: transpiler/tests/lsp_proxy_tests.cpp $(TRANSPILER_SRCS) $(LSP_SRCS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -pthread $(TRANSPILER_INC) -o $@ $^
+
+$(BUILD)/lsp_clangd_smoke: transpiler/tests/lsp_clangd_smoke.cpp $(TRANSPILER_SRCS) $(LSP_SRCS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -pthread $(TRANSPILER_INC) -o $@ $^
 
 $(BUILD)/golden_tests: transpiler/tests/golden_tests.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
@@ -86,6 +107,10 @@ test: all
 	done
 	$(BUILD)/json_tests
 	$(BUILD)/framing_tests
+	$(BUILD)/lsp_proxy_tests $(ASYNCTP_LSP) $(BUILD)/fake_lsp_server
+	@# Exit 77 means no clangd on this machine (decision D4): report, carry on.
+	@$(BUILD)/lsp_clangd_smoke $(ASYNCTP_LSP); rc=$$?; \
+	  if [ $$rc -eq 77 ]; then echo "lsp_clangd_smoke: SKIPPED"; elif [ $$rc -ne 0 ]; then exit $$rc; fi
 	$(BUILD)/task_tests
 	$(BUILD)/executor_tests
 	@for e in $(EXAMPLE_BINS); do echo $$e; $$e || exit 1; done
