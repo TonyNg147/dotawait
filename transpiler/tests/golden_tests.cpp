@@ -61,6 +61,9 @@ int main(int argc, char** argv) {
 
   run_case(asynctp_path, golden_dir, "simple_fn");
   run_case(asynctp_path, golden_dir, "nested_lambda");
+  run_case(asynctp_path, golden_dir, "digit_separators");
+  run_case(asynctp_path, golden_dir, "literals_around_signature");
+  run_case(asynctp_path, golden_dir, "raw_string_in_define");
 
   return asynctp::test::report("golden_tests");
 }

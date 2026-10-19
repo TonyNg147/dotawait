@@ -1,5 +1,6 @@
 add_executable(asynctp
   src/scanner.cpp
+  src/tokenizer.cpp
   src/lexer.cpp
   src/async_parser.cpp
   src/lowering.cpp
@@ -19,6 +20,7 @@ if(BUILD_TESTING)
   # framework if one earned its keep, but this one doesn't need it.
   add_library(asynctp_core STATIC
     src/scanner.cpp
+    src/tokenizer.cpp
     src/lexer.cpp
     src/async_parser.cpp
     src/lowering.cpp
@@ -27,7 +29,7 @@ if(BUILD_TESTING)
   target_include_directories(asynctp_core PUBLIC include)
   target_compile_features(asynctp_core PUBLIC cxx_std_20)
 
-  foreach(test_name lexer_tests parser_tests lowering_tests)
+  foreach(test_name tokenizer_tests lexer_tests parser_tests lowering_tests)
     add_executable(${test_name} tests/${test_name}.cpp)
     target_link_libraries(${test_name} PRIVATE asynctp_core)
     target_compile_features(${test_name} PRIVATE cxx_std_20)
