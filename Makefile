@@ -21,7 +21,7 @@ RUNTIME_INC := -Iruntime/include
 ASYNCTP := $(BUILD)/asynctp
 
 # Adding an example is just: drop examples/<name>.async.cpp and list <name> here.
-EXAMPLES := hello yielding
+EXAMPLES := hello yielding braceless_return
 EXAMPLE_BINS := $(EXAMPLES:%=$(BUILD)/%_example)
 
 .PHONY: all test clean

@@ -11,8 +11,9 @@ namespace asynctp {
 
 // Lowers one async-marked function's body text: every top-level
 // `expr.await` becomes `co_await (expr)` and every top-level bare
-// `return`/`return expr;` becomes `co_return`/`co_return expr;`, where
-// "top-level" means not inside a nested *ordinary* (non-async) lambda
+// `return`/`return expr;` becomes `co_return`/`co_return expr;` in any
+// statement position, including braceless `if`/`else`/`while`/`for`/`do`
+// bodies and after `case K:`/`default:`/a label, where "top-level" means not inside a nested *ordinary* (non-async) lambda
 // defined within the body -- a `return`/`.await` inside such a lambda is
 // left completely untouched (that lambda has its own, non-coroutine call
 // frame; using `.await` there is a documented MVP limitation, mirroring how

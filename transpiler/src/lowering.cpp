@@ -107,7 +107,6 @@ std::variant<std::string, ParseError> lower_body(std::string_view body) {
   std::size_t last_copied = 0;
   std::vector<bool> frame_is_lambda;
   int lambda_depth = 0;
-  bool at_statement_start = true;
   // Nesting of ()/[] groups, and the end of the most recent comment seen
   // outside any group. The backward `.await` scan never crosses that point,
   // so a comment like "// ...give other tasks a turn." on the line above
@@ -133,20 +132,17 @@ std::variant<std::string, ParseError> lower_body(std::string_view body) {
     if (c == '"' || c == '\'') {
       cur.skip_string_or_char_literal();
       if (cur.has_error()) return error_from(cur.error());
-      at_statement_start = false;
       continue;
     }
 
     if (c == ';') {
       cur.advance_one();
-      at_statement_start = true;
       continue;
     }
 
     if (c == '{') {
       cur.advance_one();
       frame_is_lambda.push_back(false);
-      at_statement_start = true;
       continue;
     }
 
@@ -156,21 +152,18 @@ std::variant<std::string, ParseError> lower_body(std::string_view body) {
         if (frame_is_lambda.back()) lambda_depth--;
         frame_is_lambda.pop_back();
       }
-      at_statement_start = true;
       continue;
     }
 
     if (c == '(') {
       cur.advance_one();
       group_depth++;
-      at_statement_start = false;
       continue;
     }
 
     if (c == ')' || c == ']') {
       cur.advance_one();
       if (group_depth > 0) group_depth--;
-      at_statement_start = false;
       continue;
     }
 
@@ -179,7 +172,6 @@ std::variant<std::string, ParseError> lower_body(std::string_view body) {
       if (!looks_like_lambda_start(body, bracket_offset)) {
         cur.advance_one();
         group_depth++;
-        at_statement_start = false;
         continue;
       }
 
@@ -221,7 +213,6 @@ std::variant<std::string, ParseError> lower_body(std::string_view body) {
       cur.advance_one(); // consume the lambda body's '{'
       frame_is_lambda.push_back(true);
       lambda_depth++;
-      at_statement_start = true;
       continue;
     }
 
@@ -229,12 +220,14 @@ std::variant<std::string, ParseError> lower_body(std::string_view body) {
       std::size_t id_start = cur.offset();
       std::string_view id = cur.scan_identifier_if_present();
 
-      if (lambda_depth == 0 && at_statement_start && id == "return") {
+      // `return` is a reserved word and the scan consumes whole identifiers
+      // (literals/comments were skipped above), so any match is the keyword,
+      // whatever precedes it: `if (c)`, `else`, `do`, `case 1:`, a label...
+      if (lambda_depth == 0 && id == "return") {
         copy_verbatim_to(id_start);
         out.append("co_return");
         last_copied = cur.offset();
       }
-      at_statement_start = false;
       continue;
     }
 
@@ -254,17 +247,14 @@ std::variant<std::string, ParseError> lower_body(std::string_view body) {
         out.append(")");
         last_copied = probe.offset();
         cur = probe;
-        at_statement_start = false;
         continue;
       }
 
       cur.advance_one(); // just an ordinary '.', not a rewritten .await
-      at_statement_start = false;
       continue;
     }
 
     cur.advance_one();
-    at_statement_start = false;
   }
 
   copy_verbatim_to(body.size());

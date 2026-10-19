@@ -1,7 +1,7 @@
 ---
 id: T-0001
 title: return in braceless if/else/loop/case is not lowered to co_return
-status: ready
+status: done
 area: transpiler
 type: bug
 priority: P1
@@ -231,3 +231,5 @@ block it.
 - 2026-10-17 architect: review before Jira export. Re-ran repro against current code (line 232 still accurate); confirmed `at_statement_start` has no other reader and made its removal definitive; prototyped fix on a scratch copy (repro compiles and runs, existing lowering_tests pass); added real asynctp/GCC output, invariant section, exact expected strings for lowering_tests, do/while and label cases, golden fixture input, concrete example registration in CMake + Makefile; scoped out T-0005 lambda misdetection. Status stays ready.
 - 2026-10-17 architect: triaged under epic T-0009 (new suffix-free/LSP contract). Scope unaffected; stays ready and should ship first. The `.async.cpp` names of its example/golden fixture are renamed later by T-0017, so no change is needed here or in Jira SCRUM-8.
 - 2026-10-17 architect: D7 accepted: SCRUM-8 stays as-is and this ships first; the human links SCRUM-8 to the epic in Jira.
+- 2026-10-19 developer: removed `at_statement_start` from `lower_body`; `return` at lambda_depth 0 is now always `co_return`. Added 9 lowering_tests (all failed before the fix), golden `braceless_return` (input prefixed with a `fetch` definition so golden_compile passes), runnable `examples/braceless_return.async.cpp` in CMake + Makefile, updated `lower_body` comment. verify all: OK. In-review.
+- 2026-10-19 tester: PASS, 6/6 criteria. verify all: OK. Adversarial inputs (literals/comments/raw strings containing `return`, look-alike identifiers, no-whitespace `if(k)return(1)`/`case 1:return-1`, `if constexpr`, nested braced+braceless with `.await`, lambdas after `(`/`,`/`return`/`=`, generic/mutable lambdas, `do if ... else ...; while`) lowered correctly and compiled under ASan/UBSan. Added 3 lowering_tests and `do`/`goto`-label runtime cases to the example. Out-of-scope findings were reported to the architect: `[[attr]]` misdetected as a lambda; lowering ParseError lines are body-relative; `co_return {a, b}` fails because `return_value` is a deducing template; returns inside local-class member functions are rewritten.

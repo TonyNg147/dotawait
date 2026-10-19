@@ -1,9 +1,11 @@
 add_async_executable(hello_example hello.async.cpp)
 add_async_executable(yielding_example yielding.async.cpp)
+add_async_executable(braceless_return_example braceless_return.async.cpp)
 
 if(BUILD_TESTING)
   add_test(NAME hello_example COMMAND hello_example)
   add_test(NAME yielding_example COMMAND yielding_example)
+  add_test(NAME braceless_return_example COMMAND braceless_return_example)
 
   # golden_tests only diffs text; this proves each expected output also
   # compiles against the real runtime. It lives here because examples/ is
