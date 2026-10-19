@@ -36,7 +36,6 @@ Priorities: `P1` blocks real-world use, `P2` notable friction, `P3` nice to have
 <!-- BEGIN TICKET INDEX -->
 | ID | Title | Status | Area | Type | Pri |
 |---|---|---|---|---|---|
-| [T-0001](T-0001-return-in-braceless-if-else-case-not-lowered.md) | return in braceless if/else/loop/case is not lowered to co_return | ready | transpiler | bug | P1 |
 | [T-0002](T-0002-noexcept-and-trailing-return-type-on-async-fns.md) | Support noexcept and trailing return type on async functions | ready | transpiler | limitation | P1 |
 | [T-0003](T-0003-await-backward-scan-silently-corrupts-string-literals.md) | Define the .await operand grammar (chains, template args, keywords) and reject what it cannot parse | ready | transpiler | bug | P1 |
 | [T-0004](T-0004-identifier-named-async-silently-mis-lowered.md) | Recognise async only at declaration starts; leave std::async and other identifiers alone | ready | transpiler | bug | P1 |
@@ -66,6 +65,7 @@ Priorities: `P1` blocks real-world use, `P2` notable friction, `P3` nice to have
 | [T-0007](T-0007-join-combinator.md) | join combinator to await several tasks concurrently | proposed | runtime | feature | P3 |
 | [T-0008](T-0008-async-lambdas.md) | Async lambdas / closures | proposed | transpiler | feature | P3 |
 | [T-0033](T-0033-add-release-yml-source-and-binary-release-on-v-t.md) | Add release.yml: source and binary release on v* tags | proposed | cross-cutting | feature | P3 |
+| [T-0001](T-0001-return-in-braceless-if-else-case-not-lowered.md) | return in braceless if/else/loop/case is not lowered to co_return | done | transpiler | bug | P1 |
 | [T-0010](T-0010-add-a-shared-tokenizer-and-port-marker-scan-and.md) | Add a shared tokenizer and port marker scan and signature parser to it | done | transpiler | bug | P1 |
 | [T-0019](T-0019-add-zero-dependency-json-and-json-rpc-framing.md) | Add zero-dependency JSON and JSON-RPC framing | done | transpiler | feature | P1 |
 | [T-0027](T-0027-make-golden-expected-outputs-compile-and-check-i.md) | Make golden expected outputs compile and check it in verify | done | cross-cutting | bug | P2 |
