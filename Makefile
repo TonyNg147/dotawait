@@ -11,7 +11,7 @@ CXX := g++
 CXXFLAGS := -std=c++20 -Wall -Wextra
 BUILD := build
 
-TRANSPILER_SRCS := transpiler/src/scanner.cpp transpiler/src/lexer.cpp \
+TRANSPILER_SRCS := transpiler/src/scanner.cpp transpiler/src/tokenizer.cpp transpiler/src/lexer.cpp \
                     transpiler/src/async_parser.cpp transpiler/src/lowering.cpp \
                     transpiler/src/emitter.cpp
 TRANSPILER_INC := -Itranspiler/include
@@ -26,7 +26,7 @@ EXAMPLE_BINS := $(EXAMPLES:%=$(BUILD)/%_example)
 .PHONY: all test clean
 
 all: $(ASYNCTP) \
-     $(BUILD)/lexer_tests $(BUILD)/parser_tests $(BUILD)/lowering_tests $(BUILD)/golden_tests \
+     $(BUILD)/tokenizer_tests $(BUILD)/lexer_tests $(BUILD)/parser_tests $(BUILD)/lowering_tests $(BUILD)/golden_tests \
      $(BUILD)/task_tests $(BUILD)/executor_tests \
      $(EXAMPLE_BINS)
 
@@ -34,6 +34,9 @@ $(BUILD):
 	mkdir -p $(BUILD)/generated
 
 $(ASYNCTP): transpiler/src/main.cpp $(TRANSPILER_SRCS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
+
+$(BUILD)/tokenizer_tests: transpiler/tests/tokenizer_tests.cpp $(TRANSPILER_SRCS) | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
 
 $(BUILD)/lexer_tests: transpiler/tests/lexer_tests.cpp $(TRANSPILER_SRCS) | $(BUILD)
@@ -64,6 +67,7 @@ $(BUILD)/%_example: $(BUILD)/generated/%.cpp | $(BUILD)
 .PRECIOUS: $(BUILD)/generated/%.cpp
 
 test: all
+	$(BUILD)/tokenizer_tests
 	$(BUILD)/lexer_tests
 	$(BUILD)/parser_tests
 	$(BUILD)/lowering_tests

@@ -1,23 +1,23 @@
 #pragma once
 
+#include "tokenizer.hpp"
+
 #include <cstddef>
-#include <string_view>
 #include <vector>
 
 namespace asynctp {
 
-// Flatly walks the whole file once, skipping over string/char literals and
-// comments (so an `async` appearing inside either is correctly ignored), and
-// records the byte offset of every identifier token whose text is exactly
-// "async". Ordinary C++ content (including nested braces of unrelated
-// functions/classes/namespaces) is never semantically descended into here —
-// it is simply walked over one token at a time. The parser (async_parser.hpp)
-// takes it from here, starting from each marker offset.
+// Walks the token stream of the whole file and records the begin offset of
+// every Identifier token whose text is exactly "async". Literals, comments
+// and preprocessor directives are single opaque tokens (tokenizer.hpp), so
+// an `async` inside a string, a comment, or a `#define` is never a marker.
+// Ordinary C++ content is never semantically descended into here; the
+// parser (async_parser.hpp) takes it from here, starting from each marker.
 //
 // Known MVP limitation: "async" is treated as a reserved marker word
-// recognized at any top-level identifier position, not just where a real
+// recognized at any identifier position, not just where a real
 // declaration could start. A variable or function literally named `async`
 // will be misdetected as a marker.
-std::vector<std::size_t> find_async_markers(std::string_view source);
+std::vector<std::size_t> find_async_markers(const TokenizedFile& file);
 
 } // namespace asynctp

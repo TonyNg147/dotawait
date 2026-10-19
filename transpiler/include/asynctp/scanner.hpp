@@ -1,16 +1,13 @@
 #pragma once
 
+#include "diagnostics.hpp" // SourceLocation
+
 #include <cstddef>
 #include <optional>
 #include <string>
 #include <string_view>
 
 namespace asynctp {
-
-struct SourceLocation {
-  std::size_t line;
-  std::size_t col;
-};
 
 struct ScanError {
   std::size_t offset;
@@ -19,7 +16,9 @@ struct ScanError {
   std::string message;
 };
 
-// Low-level cursor shared by the lexer and parser. It is NOT a C++ grammar
+// Low-level cursor now used only by lower_body (lowering.cpp); the marker
+// scan and the parser run on tokenizer.hpp, and T-0011 ports lower_body and
+// deletes this file. It is NOT a C++ grammar
 // engine: it only knows how to skip whitespace/comments, skip string and char
 // literals (including raw strings), and balance-match a pair of delimiter
 // characters while transparently skipping over any literal/comment it meets

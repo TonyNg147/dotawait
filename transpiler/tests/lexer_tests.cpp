@@ -1,5 +1,6 @@
 #include "asynctp/lexer.hpp"
 #include "asynctp/scanner.hpp"
+#include "asynctp/tokenizer.hpp"
 #include "test_support.hpp"
 
 using namespace asynctp;
@@ -110,20 +111,29 @@ void test_scan_identifier_absent() {
   CHECK(id.empty());
 }
 
+// Tokenizes `src` and returns its markers; a tokenizer error fails the check
+// and yields no markers.
+std::vector<std::size_t> markers_of(std::string_view src) {
+  auto tf = tokenize(src);
+  CHECK(std::holds_alternative<TokenizedFile>(tf));
+  if (!std::holds_alternative<TokenizedFile>(tf)) return {};
+  return find_async_markers(std::get<TokenizedFile>(tf));
+}
+
 void test_find_async_markers_basic() {
-  auto markers = find_async_markers("int x; async int foo() { return 1; }");
+  auto markers = markers_of("int x; async int foo() { return 1; }");
   CHECK_EQ(markers.size(), 1u);
 }
 
 void test_find_async_markers_ignores_strings_and_comments() {
-  auto markers = find_async_markers(
+  auto markers = markers_of(
       "const char* s = \"async nope\"; // async also nope\n"
       "/* async still nope */ async int real() { return 0; }");
   CHECK_EQ(markers.size(), 1u);
 }
 
 void test_find_async_markers_multiple() {
-  auto markers = find_async_markers(
+  auto markers = markers_of(
       "async int a() { return 1; } int plain() { return 2; } async int b() { return 3; }");
   CHECK_EQ(markers.size(), 2u);
 }
@@ -132,8 +142,29 @@ void test_find_async_markers_known_limitation_identifier_named_async() {
   // Documented MVP limitation: a variable literally named `async` is
   // misdetected as a marker. This test pins down that known behavior so a
   // future change to it is a deliberate decision, not an accident.
-  auto markers = find_async_markers("int async = 5;");
+  auto markers = markers_of("int async = 5;");
   CHECK_EQ(markers.size(), 1u);
+}
+
+void test_find_async_markers_skips_directives() {
+  std::string_view src = "#define X async\nasync int f() {}";
+  auto markers = markers_of(src);
+  CHECK_EQ(markers.size(), 1u);
+  if (markers.size() == 1) CHECK_EQ(markers[0], src.find("async int"));
+}
+
+void test_find_async_markers_survives_digit_separator() {
+  // Used to stop at the `'` and silently drop every later marker.
+  std::string_view src = "int n = 1'000;\nasync int f() {}";
+  auto markers = markers_of(src);
+  CHECK_EQ(markers.size(), 1u);
+  if (markers.size() == 1) CHECK_EQ(markers[0], src.find("async"));
+}
+
+void test_find_async_markers_whole_identifier_only() {
+  // `asyncé` is one identifier, not `async` followed by stray bytes.
+  auto markers = markers_of("int asyncé = 1; int async_x = 2; int my_async = 3;");
+  CHECK_EQ(markers.size(), 0u);
 }
 
 } // namespace
@@ -156,5 +187,8 @@ int main() {
   test_find_async_markers_ignores_strings_and_comments();
   test_find_async_markers_multiple();
   test_find_async_markers_known_limitation_identifier_named_async();
+  test_find_async_markers_skips_directives();
+  test_find_async_markers_survives_digit_separator();
+  test_find_async_markers_whole_identifier_only();
   return asynctp::test::report("lexer_tests");
 }

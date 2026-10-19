@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tokenizer.hpp"
+
 #include <cstddef>
 #include <string_view>
 #include <vector>
@@ -28,6 +30,7 @@ struct AsyncFunction {
 struct ParsedFile {
   std::string_view source;
   std::vector<AsyncFunction> functions;
+  TokenizedFile tokens; // the whole-file token stream parse_file built, for later stages to reuse
 };
 
 } // namespace asynctp
