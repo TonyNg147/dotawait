@@ -121,6 +121,11 @@ make test     # builds asynctp, runtime, every test suite, and both examples, th
 make clean
 ```
 
+Golden expected outputs (`transpiler/tests/golden/*.expected.cpp`) must also
+compile against `runtime/include` (the `golden_compile` test and the matching
+`make test` step), so a fixture must declare whatever it awaits, normally as
+an `async` function in the fixture itself.
+
 ## Working on this repo with Claude Code
 
 `CLAUDE.md` holds the project rules. `.claude/agents/` defines three roles:

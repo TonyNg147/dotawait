@@ -80,6 +80,10 @@ test: all
 	$(BUILD)/parser_tests
 	$(BUILD)/lowering_tests
 	$(BUILD)/golden_tests $(ASYNCTP) transpiler/tests/golden
+	@for f in transpiler/tests/golden/*.expected.cpp; do \
+	  echo "golden-compile $$f"; \
+	  $(CXX) -std=c++20 -fsyntax-only $(RUNTIME_INC) $$f || exit 1; \
+	done
 	$(BUILD)/json_tests
 	$(BUILD)/framing_tests
 	$(BUILD)/task_tests

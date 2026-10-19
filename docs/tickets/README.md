@@ -52,7 +52,6 @@ Priorities: `P1` blocks real-world use, `P2` notable friction, `P3` nice to have
 | [T-0026](T-0026-add-the-ci-yml-build-and-verify-workflow.md) | Add the ci.yml build and verify workflow | ready | cross-cutting | chore | P1 |
 | [T-0005](T-0005-lambda-start-detection-misses-keywords-and-literals.md) | Lambda-start detection misreads [ after most keywords | ready | transpiler | limitation | P2 |
 | [T-0017](T-0017-drop-the-async-cpp-naming-from-examples-fixtures.md) | Drop the .async.cpp naming from examples, fixtures, and docs | ready | cross-cutting | chore | P2 |
-| [T-0027](T-0027-make-golden-expected-outputs-compile-and-check-i.md) | Make golden expected outputs compile and check it in verify | ready | cross-cutting | bug | P2 |
 | [T-0028](T-0028-add-tools-ci-and-the-zero-dependency-include-che.md) | Add tools/ci and the zero-dependency include check | ready | cross-cutting | chore | P2 |
 | [T-0029](T-0029-add-the-agent-pr-scope-guard.md) | Add the agent-PR scope guard | ready | cross-cutting | feature | P2 |
 | [T-0030](T-0030-add-ticket-evidence-markers-and-the-ticket-consi.md) | Add ticket evidence markers and the ticket-consistency gate | ready | cross-cutting | feature | P2 |
@@ -69,4 +68,5 @@ Priorities: `P1` blocks real-world use, `P2` notable friction, `P3` nice to have
 | [T-0033](T-0033-add-release-yml-source-and-binary-release-on-v-t.md) | Add release.yml: source and binary release on v* tags | proposed | cross-cutting | feature | P3 |
 | [T-0010](T-0010-add-a-shared-tokenizer-and-port-marker-scan-and.md) | Add a shared tokenizer and port marker scan and signature parser to it | done | transpiler | bug | P1 |
 | [T-0019](T-0019-add-zero-dependency-json-and-json-rpc-framing.md) | Add zero-dependency JSON and JSON-RPC framing | done | transpiler | feature | P1 |
+| [T-0027](T-0027-make-golden-expected-outputs-compile-and-check-i.md) | Make golden expected outputs compile and check it in verify | done | cross-cutting | bug | P2 |
 <!-- END TICKET INDEX -->
