@@ -13,7 +13,8 @@ BUILD := build
 
 TRANSPILER_SRCS := transpiler/src/scanner.cpp transpiler/src/tokenizer.cpp transpiler/src/lexer.cpp \
                     transpiler/src/async_parser.cpp transpiler/src/lowering.cpp \
-                    transpiler/src/emitter.cpp
+                    transpiler/src/emitter.cpp \
+                    transpiler/src/lsp/json.cpp transpiler/src/lsp/framing.cpp
 TRANSPILER_INC := -Itranspiler/include
 RUNTIME_INC := -Iruntime/include
 
@@ -27,6 +28,7 @@ EXAMPLE_BINS := $(EXAMPLES:%=$(BUILD)/%_example)
 
 all: $(ASYNCTP) \
      $(BUILD)/tokenizer_tests $(BUILD)/lexer_tests $(BUILD)/parser_tests $(BUILD)/lowering_tests $(BUILD)/golden_tests \
+     $(BUILD)/json_tests $(BUILD)/framing_tests \
      $(BUILD)/task_tests $(BUILD)/executor_tests \
      $(EXAMPLE_BINS)
 
@@ -46,6 +48,12 @@ $(BUILD)/parser_tests: transpiler/tests/parser_tests.cpp $(TRANSPILER_SRCS) | $(
 	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
 
 $(BUILD)/lowering_tests: transpiler/tests/lowering_tests.cpp $(TRANSPILER_SRCS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
+
+$(BUILD)/json_tests: transpiler/tests/json_tests.cpp $(TRANSPILER_SRCS) | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
+
+$(BUILD)/framing_tests: transpiler/tests/framing_tests.cpp $(TRANSPILER_SRCS) | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(TRANSPILER_INC) -o $@ $^
 
 $(BUILD)/golden_tests: transpiler/tests/golden_tests.cpp | $(BUILD)
@@ -72,6 +80,8 @@ test: all
 	$(BUILD)/parser_tests
 	$(BUILD)/lowering_tests
 	$(BUILD)/golden_tests $(ASYNCTP) transpiler/tests/golden
+	$(BUILD)/json_tests
+	$(BUILD)/framing_tests
 	$(BUILD)/task_tests
 	$(BUILD)/executor_tests
 	@for e in $(EXAMPLE_BINS); do echo $$e; $$e || exit 1; done

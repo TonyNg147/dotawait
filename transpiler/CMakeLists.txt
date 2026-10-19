@@ -25,11 +25,15 @@ if(BUILD_TESTING)
     src/async_parser.cpp
     src/lowering.cpp
     src/emitter.cpp
+    # LSP support for the future asynctp-lsp proxy (T-0021); only the tests
+    # use it until that executable exists.
+    src/lsp/json.cpp
+    src/lsp/framing.cpp
   )
   target_include_directories(asynctp_core PUBLIC include)
   target_compile_features(asynctp_core PUBLIC cxx_std_20)
 
-  foreach(test_name tokenizer_tests lexer_tests parser_tests lowering_tests)
+  foreach(test_name tokenizer_tests lexer_tests parser_tests lowering_tests json_tests framing_tests)
     add_executable(${test_name} tests/${test_name}.cpp)
     target_link_libraries(${test_name} PRIVATE asynctp_core)
     target_compile_features(${test_name} PRIVATE cxx_std_20)

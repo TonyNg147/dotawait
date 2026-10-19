@@ -1,7 +1,7 @@
 ---
 id: T-0019
 title: Add zero-dependency JSON and JSON-RPC framing
-status: ready
+status: done
 area: transpiler
 type: feature
 priority: P1
@@ -105,3 +105,5 @@ CLAUDE.md forbids third-party libraries in `transpiler/`.
 ## Log
 
 - 2026-10-17 architect: created under epic T-0009; ready (no clangd needed).
+- 2026-10-18 developer: added asynctp::lsp::Json (strict RFC 8259 parse incl. UTF-8 validation, depth 256, int64/double split; compact dump) and read_message/write_message framing; json_tests + framing_tests in CMake and Makefile (T-0014 not landed, so sources go in test-only asynctp_core + TRANSPILER_SRCS). verify full and asan OK; in-review.
+- 2026-10-18 tester: PASS. 5/5 criteria. Gap closed: the existing "é"/"😀" tests used raw UTF-8, so the \uXXXX decoder and surrogate-pair combining had no coverage; added json_tests cases for é, 😀, every UTF-8 length boundary, lone-surrogate variants, number grammar, invalid UTF-8 and BOM, plus framing_tests for multi-chunk (>64 KiB) bodies, a SIZE_MAX length on a short stream, and header edge cases. All pass; verify all OK.
