@@ -36,6 +36,8 @@ Priorities: `P1` blocks real-world use, `P2` notable friction, `P3` nice to have
 <!-- BEGIN TICKET INDEX -->
 | ID | Title | Status | Area | Type | Pri |
 |---|---|---|---|---|---|
+| [T-0026](T-0026-add-the-ci-yml-build-and-verify-workflow.md) | Add the ci.yml build and verify workflow | in-progress | cross-cutting | chore | P1 |
+| [T-0033](T-0033-add-release-yml-source-and-binary-release-on-v-t.md) | Add release.yml: source and binary release on v* tags | in-progress | cross-cutting | feature | P3 |
 | [T-0002](T-0002-noexcept-and-trailing-return-type-on-async-fns.md) | Support noexcept and trailing return type on async functions | ready | transpiler | limitation | P1 |
 | [T-0003](T-0003-await-backward-scan-silently-corrupts-string-literals.md) | Define the .await operand grammar (chains, template args, keywords) and reject what it cannot parse | ready | transpiler | bug | P1 |
 | [T-0004](T-0004-identifier-named-async-silently-mis-lowered.md) | Recognise async only at declaration starts; leave std::async and other identifiers alone | ready | transpiler | bug | P1 |
@@ -47,7 +49,6 @@ Priorities: `P1` blocks real-world use, `P2` notable friction, `P3` nice to have
 | [T-0015](T-0015-switch-cmake-and-makefile-integration-to-the-lau.md) | Switch CMake and Makefile integration to the launcher | ready | cmake | feature | P1 |
 | [T-0018](T-0018-spike-verify-clangd-behaviour-the-lsp-proxy-depe.md) | Spike: verify clangd behaviour the LSP proxy depends on | ready | transpiler | chore | P1 |
 | [T-0020](T-0020-add-a-tolerant-lowering-mode-for-half-typed-buff.md) | Add a tolerant lowering mode for half-typed buffers | ready | transpiler | feature | P1 |
-| [T-0026](T-0026-add-the-ci-yml-build-and-verify-workflow.md) | Add the ci.yml build and verify workflow | ready | cross-cutting | chore | P1 |
 | [T-0005](T-0005-lambda-start-detection-misses-keywords-and-literals.md) | Lambda-start detection misreads [ after most keywords | ready | transpiler | limitation | P2 |
 | [T-0017](T-0017-drop-the-async-cpp-naming-from-examples-fixtures.md) | Drop the .async.cpp naming from examples, fixtures, and docs | ready | cross-cutting | chore | P2 |
 | [T-0028](T-0028-add-tools-ci-and-the-zero-dependency-include-che.md) | Add tools/ci and the zero-dependency include check | ready | cross-cutting | chore | P2 |
@@ -63,7 +64,6 @@ Priorities: `P1` blocks real-world use, `P2` notable friction, `P3` nice to have
 | [T-0032](T-0032-apply-repo-defences-codeowners-rulesets-agent-id.md) | Apply repo defences: CODEOWNERS, rulesets, agent identity, Actions settings | proposed | cross-cutting | chore | P1 |
 | [T-0007](T-0007-join-combinator.md) | join combinator to await several tasks concurrently | proposed | runtime | feature | P3 |
 | [T-0008](T-0008-async-lambdas.md) | Async lambdas / closures | proposed | transpiler | feature | P3 |
-| [T-0033](T-0033-add-release-yml-source-and-binary-release-on-v-t.md) | Add release.yml: source and binary release on v* tags | proposed | cross-cutting | feature | P3 |
 | [T-0001](T-0001-return-in-braceless-if-else-case-not-lowered.md) | return in braceless if/else/loop/case is not lowered to co_return | done | transpiler | bug | P1 |
 | [T-0010](T-0010-add-a-shared-tokenizer-and-port-marker-scan-and.md) | Add a shared tokenizer and port marker scan and signature parser to it | done | transpiler | bug | P1 |
 | [T-0019](T-0019-add-zero-dependency-json-and-json-rpc-framing.md) | Add zero-dependency JSON and JSON-RPC framing | done | transpiler | feature | P1 |

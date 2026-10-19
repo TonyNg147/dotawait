@@ -1,0 +1,70 @@
+# Build + test on every PR and every push to master.
+# Calls verify.sh only, so CI runs exactly what developers and agents run
+# locally; build changes (T-0015 launcher, T-0017 renames) need no edit here.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Read-only token, no secrets: this workflow builds and runs PR code,
+# including agent-written PRs.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    # The check names "verify (full)" and "verify (asan)" are what the
+    # master ruleset requires. Renaming them breaks branch protection.
+    name: verify (${{ matrix.mode }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: gcc:15          # GCC 15.x on Debian trixie; runners only ship GCC 14
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [full, asan]   # full = cmake build+ctest (incl. consumer) + Makefile parity
+    env:
+      CC: gcc
+      CXX: g++
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install CMake (not in the gcc image)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends cmake
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # PR code runs next; keep the token out of .git/config
+
+      - name: Toolchain
+        run: |
+          g++ --version | head -n1
+          cmake --version | head -n1
+          make --version | head -n1
+          case "$(g++ -dumpversion)" in
+            15*) ;;
+            *) echo "::error::expected GCC 15, got $(g++ -dumpversion)"; exit 1 ;;
+          esac
+
+      - name: verify.sh ${{ matrix.mode }}
+        run: .claude/skills/verify/scripts/verify.sh ${{ matrix.mode }}
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-logs-${{ matrix.mode }}
+          path: |
+            build/Testing/Temporary/LastTest*.log
+            build-asan/Testing/Temporary/LastTest*.log
+          if-no-files-found: ignore
+          retention-days: 7

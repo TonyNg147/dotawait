@@ -1,7 +1,7 @@
 ---
 id: T-0026
 title: Add the ci.yml build and verify workflow
-status: ready
+status: in-progress
 area: cross-cutting
 type: chore
 priority: P1
@@ -324,3 +324,4 @@ integration** paragraph:
 ## Log
 
 - 2026-10-18 architect: created under T-0025. Reproduced verify.sh quick/full/asan non-interactively on a clean `git archive` export (+.claude) with times. Found that `.claude/`, `CLAUDE.md`, and `docs/` are untracked (step 0). gcc:15 contents come from the docker-library sources because Docker is not usable in this WSL distro. Deviated from the 4-job design to 2 matrix jobs that call verify.sh (rationale in Scope). Ready.
+- 2026-10-19 claude (at the human's request): step 0 already holds on `agents/base` (`verify.sh` tracked as 100755). Step 1: `.github/workflows/ci.yml` added verbatim from the blueprint; both action SHAs re-checked against the `v7.0.1`/`v7.0.2` tags with `git ls-remote`; actionlint 1.7.7 clean (shellcheck not installed). Step 3: README "Continuous integration" paragraph added. Still open: first runs on GitHub, negative proofs (a)-(c), the push-to-master run (needs `agents/base` merged into `master`), the ruleset (step 2), job wall times.

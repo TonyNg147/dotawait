@@ -169,6 +169,23 @@ compile against `runtime/include` (the `golden_compile` test and the matching
 `make test` step), so a fixture must declare whatever it awaits, normally as
 an `async` function in the fixture itself.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs `verify.sh full` and `verify.sh asan` in the
+`gcc:15` container on every PR and every push to `master`. Both checks,
+`verify (full)` and `verify (asan)`, are required on `master`. To reproduce
+a red check locally, run the same mode:
+`.claude/skills/verify/scripts/verify.sh full` (or `asan`).
+
+### Releases
+
+Pushing a `v*` tag (`git tag v0.1.0 && git push origin v0.1.0`) runs
+`.github/workflows/release.yml`: `verify.sh all`, then a GitHub Release with
+`dotawait-<tag>-linux-x86_64.tar.gz` (`bin/asynctp`, `bin/asynctp-lsp`,
+`include/asyncrt/`) and its SHA-256. A tag containing `-` (`v0.2.0-rc1`) is
+published as a prerelease. The binaries link libstdc++ statically and need
+glibc 2.41 or newer.
+
 ## Working on this repo with Claude Code
 
 `CLAUDE.md` holds the project rules. `.claude/agents/` defines three roles:
